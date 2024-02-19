@@ -95,7 +95,15 @@ class ProductImagesParser {
 	public function process( WC_Product &$product, array &$product_data ): void {
 		if ( $product_data['images'] ) {
 			$product->set_image_id( (int) $product_data['images'][0] );
-			$product->set_gallery_image_ids( (array) $product_data['images'] );
+			$product->set_gallery_image_ids( array_slice( (array) $product_data['images'], 1 ) );
+
+			$my_image_meta = array(
+				'post_title'	=> $product->get_title(),	// Set image Title
+				//'post_excerpt'	=> $my_image_title,		// Set image Caption (Excerpt)
+				//'post_content'	=> $my_image_title,		// Set image Description (Content)
+			);
+			$this->update_images_meta($product_data['images'],$my_image_meta);
+
 		}
 	}
 
@@ -141,5 +149,35 @@ class ProductImagesParser {
 		);
 
 		return $attachment_id;
+	}
+
+	/**
+	 * Update images metadata
+	 *
+	 * @param array $images 	Array of an images ID's.
+	 * @param array $image_meta	Array with the image meta (Title, Caption, Description) to be updated
+	 *
+ 	 * @return void
+	 *
+	 */
+	protected function update_images_meta( array $images, array $image_meta ): void {
+		foreach ($images as $post_ID) {
+			if ( wp_attachment_is_image( $post_ID ) ) {
+				// Create an array with the image meta (Title, Caption, Description) to be updated
+				// Note:  comment out the Excerpt/Caption or Content/Description lines if not needed
+				$my_image_meta = array(
+					'ID'		=> $post_ID,						// Specify the image (ID) to be updated
+					'post_title'	=> $image_meta['post_title'],	// Set image Title
+					//'post_excerpt'	=> $image_meta['post_title'],	// Set image Caption (Excerpt)
+					//'post_content'	=> $image_meta['post_title'],	// Set image Description (Content)
+				);
+		
+				// Set the image Alt-Text
+				update_post_meta( $post_ID, '_wp_attachment_image_alt', $image_meta['post_title']);
+		
+				// Set the image meta (e.g. Title, Excerpt, Content)
+				wp_update_post( $my_image_meta );
+			} 
+		}
 	}
 }
